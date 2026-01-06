@@ -322,6 +322,39 @@ export function saveMaxTokens(value) {
 }
 
 /**
+ * Save Top P setting
+ * @param {number} value - Top P value
+ */
+export function saveTopP(value) {
+    const settings = loadSettings();
+    settings.topP = parseFloat(value) || DEFAULT_SETTINGS.topP || 0.9;
+    saveSettings(settings);
+    window.ACTIVE_TOP_P = settings.topP;
+}
+
+/**
+ * Save frequency penalty setting
+ * @param {number} value - Frequency penalty value
+ */
+export function saveFrequencyPenalty(value) {
+    const settings = loadSettings();
+    settings.frequencyPenalty = parseFloat(value) || 0;
+    saveSettings(settings);
+    window.ACTIVE_FREQUENCY_PENALTY = settings.frequencyPenalty;
+}
+
+/**
+ * Save presence penalty setting
+ * @param {number} value - Presence penalty value
+ */
+export function savePresencePenalty(value) {
+    const settings = loadSettings();
+    settings.presencePenalty = parseFloat(value) || 0;
+    saveSettings(settings);
+    window.ACTIVE_PRESENCE_PENALTY = settings.presencePenalty;
+}
+
+/**
  * Save enter to send setting
  * @param {boolean} value - Enter to send enabled
  */

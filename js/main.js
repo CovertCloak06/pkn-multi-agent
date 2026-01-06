@@ -7,7 +7,17 @@ import { showToast, toggleSection, closeHistoryMenu, checkBackend } from './util
 import { sendMessage, addMessage, renderHistory } from './chat.js';
 import { initModelSelector } from './models.js';
 import { renderProjects } from './projects.js';
-import { toggleSettings } from './settings.js';
+import {
+    toggleSettings,
+    saveTemperature,
+    saveMaxTokens,
+    saveTopP,
+    saveFrequencyPenalty,
+    savePresencePenalty,
+    saveEnterToSend,
+    saveShowTimestamps,
+    saveApiKey
+} from './settings.js';
 import { showFilesPanel, hideFilesPanel, initFilesPanelRefs } from './files.js';
 import {
     openImageGenerator,
@@ -294,6 +304,17 @@ window.sendMessage = sendMessage;
 window.networkAction = networkAction;
 window.addMessage = addMessage;
 window.renderHistory = renderHistory;
+
+// Settings functions
+window.toggleSettings = toggleSettings;
+window.saveTemperature = saveTemperature;
+window.saveMaxTokens = saveMaxTokens;
+window.saveTopP = saveTopP;
+window.saveFrequencyPenalty = saveFrequencyPenalty;
+window.savePresencePenalty = savePresencePenalty;
+window.saveEnterToSend = saveEnterToSend;
+window.saveShowTimestamps = saveShowTimestamps;
+window.saveApiKey = saveApiKey;
 
 // Image generation functions
 window.openImageGenerator = openImageGenerator;

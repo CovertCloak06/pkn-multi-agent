@@ -9,6 +9,7 @@ class MultiAgentUI {
         this.availableAgents = [];
         this.currentAgent = null;
         this.agentMode = 'auto'; // 'auto' or 'manual'
+        this.currentStreamController = null; // For aborting streams
 
         this.init();
     }
@@ -206,10 +207,20 @@ class MultiAgentUI {
         const message = messageInput.value.trim();
         if (!message) return;
 
+        // Create abort controller for this request
+        this.currentStreamController = new AbortController();
+
         // Disable input
         messageInput.disabled = true;
+
+        // Change send button to stop button
         const sendBtn = document.getElementById('sendBtn');
-        if (sendBtn) sendBtn.disabled = true;
+        if (sendBtn) {
+            sendBtn.disabled = false; // Keep enabled so user can click to stop
+            sendBtn.dataset.originalText = sendBtn.textContent;
+            sendBtn.textContent = '⏹ Stop';
+            sendBtn.onclick = () => this.stopStreaming();
+        }
 
         // Show thinking indicator
         this.showThinking(true);
@@ -239,7 +250,8 @@ class MultiAgentUI {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                signal: this.currentStreamController.signal
             });
 
             if (!response.ok) {
@@ -329,19 +341,46 @@ class MultiAgentUI {
         } catch (error) {
             console.error('[MultiAgent] Streaming error:', error);
 
-            // Track error metrics
-            if (window.agentQualityMonitor) {
-                window.agentQualityMonitor.trackError(selectedAgent, error, { message });
-            }
+            // Don't show error if user aborted
+            if (error.name !== 'AbortError') {
+                // Track error metrics
+                if (window.agentQualityMonitor) {
+                    window.agentQualityMonitor.trackError(selectedAgent, error, { message });
+                }
 
-            // Show error with retry button
-            this.addErrorMessage(error, message);
+                // Show error with retry button
+                this.addErrorMessage(error, message);
+            } else {
+                // User stopped the stream
+                console.log('[MultiAgent] Stream aborted by user');
+            }
         } finally {
             // Re-enable input
             messageInput.disabled = false;
-            if (sendBtn) sendBtn.disabled = false;
+
+            // Restore send button
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.textContent = sendBtn.dataset.originalText || 'Send';
+                sendBtn.onclick = null; // Remove stop handler
+            }
+
             messageInput.focus();
             this.showThinking(false);
+            this.currentStreamController = null;
+        }
+    }
+
+    stopStreaming() {
+        if (this.currentStreamController) {
+            console.log('[MultiAgent] Stopping stream...');
+            this.currentStreamController.abort();
+            this.currentStreamController = null;
+
+            // Show toast notification
+            if (window.showToast) {
+                window.showToast('Stream stopped', 2000, 'info');
+            }
         }
     }
 
