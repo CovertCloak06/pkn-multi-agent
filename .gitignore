@@ -35,6 +35,7 @@ pkn_memory.json
 *.swp
 *.swo
 *~
+.bashrc
 
 # OS
 .DS_Store
