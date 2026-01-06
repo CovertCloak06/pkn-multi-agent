@@ -67,6 +67,45 @@ http://localhost:8010
 
 ---
 
+## 📱 Android APK Build (NEW!)
+
+**Want Divine Node on your Android phone?** We've got you covered!
+
+### 📚 Build Documentation (All in Project Root)
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| **[BUILD_APK_QUICK_GUIDE.md](BUILD_APK_QUICK_GUIDE.md)** | ⚡ Fast 5-step build guide | Humans |
+| **[APK_BUILD_LOG.md](APK_BUILD_LOG.md)** | 🚧 All errors & solutions encountered | Troubleshooting |
+| **[AI_APK_BUILD_INSTRUCTIONS.md](AI_APK_BUILD_INSTRUCTIONS.md)** | 🤖 Systematic build protocol | AI Assistants |
+| **[BUILD_ON_ANDROID.md](BUILD_ON_ANDROID.md)** | 📱 Build APK on Android/Termux | Mobile developers |
+
+### ⚡ Quick Build (After Setup)
+
+```bash
+cd /home/gh0st/pkn
+git checkout claude/add-android-app-branch-RKG9I
+
+# Set up environment
+export JAVA_HOME=/home/gh0st/.jdk/jdk-21.0.8
+export PATH=$JAVA_HOME/bin:$PATH
+source ~/.nvm/nvm.sh && nvm use 22
+
+# Sync and build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+
+# APK ready!
+cp app/build/outputs/apk/debug/app-debug.apk ~/Downloads/DivineNode.apk
+```
+
+**Result:** 12MB APK in `~/Downloads/DivineNode.apk`
+
+**Need help?** Check `APK_BUILD_LOG.md` - every error and solution is documented!
+
+---
+
 ## 📖 Documentation
 
 - **[Installation Guide](docs/INSTALL.md)** - Detailed setup instructions
