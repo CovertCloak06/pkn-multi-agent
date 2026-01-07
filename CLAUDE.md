@@ -347,3 +347,170 @@ Latest backup: `../pkn_backup_YYYYMMDD_HHMMSS.tar.gz` (excludes gaming content, 
 - Adjust opacity in `.agent-switcher-fab` class (main.css line 2088)
 - Reduce background alpha: `rgba(0, 255, 255, 0.15)` (lower last value)
 - Check mobile breakpoint styles at line 2278
+
+## Mobile Phone Deployment (2026-01-07)
+
+### Termux Android Deployment Summary
+
+**Deployment Location**: User's Android phone via Termux
+- Phone directory: `~/pkn-phone/` (separate from PC build at `/home/gh0st/pkn/`)
+- SSH access: `ssh u0_a322@192.168.1.200 -p 8022` (password: `pkn123`)
+- Server port: 8010 (same as desktop)
+
+### Lightweight Mobile Server
+
+Created **`~/pkn-phone/divinenode_server.py`** - stripped-down Flask server optimized for mobile:
+- Single local Phi-3 Mini agent (3.8GB model)
+- Minimal endpoints for chat functionality
+- No Ollama, no multi-agent orchestration (too resource-intensive for phone)
+- Added missing API endpoints to prevent 405 errors:
+  - `/api/multi-agent/chat/stream` (non-streaming fallback for mobile)
+  - `/api/autocomplete` (disabled - returns empty suggestions)
+  - `/api/multi-agent/agents` (returns single "general" agent)
+  - `/api/health` (health check)
+  - `/api/files/list` (disabled - returns empty array)
+  - `/api/models/ollama` (not available on mobile)
+  - `/api/models/llamacpp` (returns phi3-mini-3.8b)
+
+### UI Files Transferred to Phone
+
+All UI files copied from PC (`/home/gh0st/pkn/`) to phone (`~/pkn-phone/`):
+- `pkn.html` - Main HTML (modified for mobile with inline CSS)
+- `css/` - Stylesheets directory
+- `js/` - JavaScript modules
+- `img/` - Images including `icchat.png` icon
+- `manifest.json` - PWA manifest
+
+### Mobile CSS Strategy - Inline Critical CSS
+
+**Problem**: External CSS files were aggressively cached by mobile browsers (304 Not Modified responses), preventing layout updates.
+
+**Solutions Attempted**:
+1. ✗ External `css/mobile.css` - kept caching
+2. ✗ Cache-busting parameters `?v=timestamp` - still cached
+3. ✗ Disabled service worker (`sw.js` → `sw.js.disabled`) - helped but not enough
+4. ✓ **Inline CSS in HTML `<head>`** - final working solution
+
+**Implemented Mobile CSS** (added directly to `~/pkn-phone/pkn.html` before `</head>`):
+```html
+<!-- MOBILE INLINE CSS -->
+<style>
+@media (max-width: 1024px) {
+    /* Hide scrollbars */
+    *::-webkit-scrollbar { display: none !important; }
+    * { scrollbar-width: none !important; max-width: 100vw !important; }
+
+    /* Base font size readable on mobile */
+    html, body { font-size: 14px !important; overflow-x: hidden !important; width: 100vw !important; margin: 0 !important; }
+
+    /* Sidebar completely hidden by default */
+    .sidebar { transform: translateX(-105%) !important; position: fixed !important; width: 240px !important; z-index: 1000 !important; }
+    .sidebar.visible { transform: translateX(0) !important; }
+    .hover-strip { display: none !important; width: 0 !important; }
+
+    /* Main content full width */
+    .main { margin-left: 0 !important; width: 100% !important; }
+
+    /* Hide desktop-only controls */
+    .header select, select#modelSelect, select#agentSelect { display: none !important; }
+    .header button { width: 100% !important; font-size: 13px !important; height: 36px !important; }
+
+    /* Subtle menu toggle button */
+    .toggle-btn { position: fixed !important; top: 12px !important; left: 12px !important; width: 36px !important; height: 36px !important; background: rgba(0,255,255,0.15) !important; opacity: 0.6 !important; }
+
+    /* Welcome boxes stack vertically */
+    .welcome-grid, .features-grid { display: flex !important; flex-direction: column !important; }
+    .welcome-box { width: calc(100% - 20px) !important; padding: 12px !important; }
+
+    /* Messages area with bottom padding for fixed input */
+    #messagesContainer { padding-bottom: 140px !important; font-size: 15px !important; }
+    .message { padding: 12px !important; font-size: 15px !important; }
+
+    /* Fixed input container at bottom */
+    .input-container { position: fixed !important; bottom: 0 !important; padding: 10px !important; z-index: 999 !important; }
+
+    /* Chat controls in 3-column grid above input */
+    .input-controls { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; margin-bottom: 8px !important; }
+    .input-controls button { flex: 1 1 calc(33% - 4px) !important; font-size: 12px !important; height: 32px !important; }
+
+    /* Textarea sizing */
+    #messageInput { font-size: 15px !important; height: 42px !important; padding: 10px !important; }
+
+    /* Circular glowing send button */
+    .send-btn { width: 42px !important; height: 42px !important; border-radius: 50% !important; background: linear-gradient(135deg, #00ffff, #00cccc) !important; color: #000 !important; }
+    .send-btn::after { content: "▶" !important; }
+    .send-btn span { display: none !important; }
+}
+</style>
+```
+
+### Termux Menu Integration
+
+Updated **`~/pkn/scripts/termux_menu.sh`** to launch PKN Mobile:
+```bash
+PKN_MOBILE="$HOME/pkn-phone"
+MOBILE_PORT=8010
+MOBILE_URL="http://127.0.0.1:${MOBILE_PORT}"
+
+start_pkn_mobile() {
+    cd "$PKN_MOBILE"
+    python3 divinenode_server.py &
+    sleep 2
+    # Cache-busting URL with timestamp
+    am start -a android.intent.action.VIEW -d "${MOBILE_URL}?v=$(date +%s)"
+}
+```
+
+Menu options added:
+- `PKN Mobile` - Start server and open in browser with cache-busting
+- `PKN Server Only` - Start server without opening browser
+
+### Known Issues (as of 2026-01-07)
+
+**CRITICAL - Still Unresolved**:
+1. **UI Overlap** - User reports "a lot of overlap still" with mobile layout
+   - Elements may be overlapping despite CSS fixes
+   - Hard to debug without visual access to phone screen
+   - May require additional CSS refinements or `!important` flags
+
+**Resolved Issues**:
+- ✓ Service worker caching old versions - Disabled `sw.js`
+- ✓ External CSS caching - Switched to inline CSS
+- ✓ 405 errors on chat endpoint - Added all missing API endpoints
+- ✓ Menu button halfway visible - Fixed with CSS positioning
+- ✓ Elements too large/too small - Iterated multiple versions to find readable sizes
+- ✓ Sidebar not fully hiding - Set `transform: translateX(-105%)`
+
+### Mobile vs Desktop Build
+
+**IMPORTANT**: Two separate deployments maintained:
+- **PC Build**: `/home/gh0st/pkn/` - Full multi-agent system, all features intact
+- **Phone Build**: `~/pkn-phone/` - Lightweight single-agent, mobile-optimized UI
+
+**DO NOT** mix files between these two locations. PC build is production-quality and should not be overwritten by mobile experiments.
+
+### Debugging Mobile Layout Issues
+
+When fixing mobile CSS:
+1. **DO**: Edit `~/pkn-phone/pkn.html` inline `<style>` block directly
+2. **DO**: Use SSH to restart server: `pkill -f divinenode_server.py && cd ~/pkn-phone && python3 divinenode_server.py &`
+3. **DO**: Open with cache-busting: `http://127.0.0.1:8010?v=TIMESTAMP`
+4. **DON'T**: Rely on external CSS files - they cache aggressively
+5. **DON'T**: Forget to use `!important` flags - mobile browsers are stubborn
+6. **DON'T**: Modify PC build files when working on mobile deployment
+
+### Browser Cache Clearing Commands
+
+User tested in both browsers on Android:
+- **Firefox Nightly**: Settings → Clear browsing data → Cached images and files
+- **Chrome**: Settings → Privacy → Clear browsing data → Cached images and files
+
+Even with manual clearing, inline CSS proved more reliable than external files.
+
+### Next Steps for Mobile (When Resumed)
+
+1. Get visual screenshot from user to identify overlap issues
+2. Refine inline CSS in `~/pkn-phone/pkn.html` based on specific overlap problems
+3. Test in both Firefox Nightly and Chrome to ensure cross-browser compatibility
+4. Consider adding user agent detection to serve different CSS for different mobile browsers
+5. Document final working mobile CSS once layout issues are fully resolved
