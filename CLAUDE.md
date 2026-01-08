@@ -514,3 +514,128 @@ Even with manual clearing, inline CSS proved more reliable than external files.
 3. Test in both Firefox Nightly and Chrome to ensure cross-browser compatibility
 4. Consider adding user agent detection to serve different CSS for different mobile browsers
 5. Document final working mobile CSS once layout issues are fully resolved
+
+## Phone Cleanup & Screen Mirroring Setup (2026-01-07 Evening)
+
+### Cleanup Session
+
+**Problem**: User had conflicting scripts, duplicates, and temp files scattered across phone from multiple build attempts.
+
+**Audit Results**: Found 21 items to remove:
+- 5 temp fix scripts from CSS debugging (add-css-safe.sh, add-inline.sh, fix-html.sh, fix-overlap.sh, update-server.sh)
+- 1 duplicate menu (~/termux_menu.sh - old 242-line version)
+- 4 old PKN directories (~/.pkn/, ~/devnode/pkn/, ~/static/pkn/, ~/projects/pkn_extract_20251230_112926/)
+- 5 old Python components (ai_router.py, fix_models.py, fix_ui_layout.py, image_gen_api.py, local_parakleon_agent.py)
+- 2 old build scripts (pkn-installer.sh, pkn-sync.sh)
+- 1 Python cache (__pycache__/)
+- 3 old log files (divinenode.log, data/divinenode.log, data/parakleon.log)
+
+**Solution**: Created and executed `auto_cleanup.sh` that removed all 21 items automatically.
+
+**bashrc Fix**: Updated alias from `alias pkn='bash "$HOME/termux_menu.sh"'` to `alias pkn='bash "$HOME/pkn/scripts/termux_menu.sh"'`
+
+**Log**: Cleanup log saved to `~/cleanup_log_YYYYMMDD_HHMMSS.txt` on phone
+
+### SSH Access
+
+**Current Setup**:
+- Phone IP: `192.168.12.184` (changes based on WiFi network)
+- SSH Port: `8022`
+- User: `u0_a322`
+- Password: `pkn123`
+
+**Connection Command**:
+```bash
+ssh u0_a322@192.168.12.184 -p 8022
+```
+
+**With sshpass** (for automation):
+```bash
+sshpass -p 'pkn123' ssh -o StrictHostKeyChecking=no u0_a322@192.168.12.184 -p 8022
+```
+
+**Note**: SSH server (sshd) must be running in Termux. Start with `sshd` command.
+
+### Screen Mirroring with scrcpy
+
+**Purpose**: View phone screen on PC for debugging mobile UI issues
+
+**Requirements**:
+- scrcpy installed on PC (`sudo apt install scrcpy`)
+- ADB version 31.0.0+ (for wireless pairing support)
+- Phone's "Wireless debugging" enabled in Developer Options
+
+**Setup Process**:
+
+1. **Update ADB** (if version < 31):
+```bash
+cd ~/Downloads
+wget https://dl.google.com/android/repository/platform-tools-latest-linux.zip
+unzip platform-tools-latest-linux.zip
+adb kill-server
+sudo cp platform-tools/adb /usr/bin/adb
+sudo chmod +x /usr/bin/adb
+adb start-server
+adb --version  # Should show 31.0.0+
+```
+
+2. **Enable Wireless Debugging on Phone**:
+   - Settings → Developer Options → Wireless debugging → ON
+   - Tap "Pair device with pairing code"
+   - Note the IP:Port and 6-digit code
+
+3. **Pair from PC**:
+```bash
+adb pair 192.168.12.184:XXXXX XXXXXX  # Use port and code from phone
+adb connect 192.168.12.184:5555       # Standard wireless ADB port
+```
+
+4. **Launch scrcpy**:
+```bash
+scrcpy --show-touches --stay-awake         # Basic with touch indicators
+scrcpy --show-touches --stay-awake --max-size 1080  # Recommended for demos
+scrcpy --turn-screen-off --show-touches    # Save battery, screen off on phone
+```
+
+**Common Issues**:
+- Pairing codes expire quickly (60 seconds) - get fresh code if needed
+- "adb: unknown command pair" = ADB too old, update to 31.0.0+
+- "Text file busy" when copying adb = Kill server first with `adb kill-server`
+- Connection timeout = Ensure phone and PC on same WiFi network
+
+**Alternative - USB Method**:
+```bash
+# Connect phone via USB
+adb devices
+adb tcpip 5555
+# Disconnect USB
+adb connect 192.168.12.184:5555
+scrcpy
+```
+
+### Working Directory Structure After Cleanup
+
+**Phone** (`~/` on Termux):
+```
+~/pkn-phone/              # Working mobile build (KEEP)
+  ├── divinenode_server.py
+  ├── pkn.html
+  ├── css/
+  ├── js/
+  ├── img/
+  └── manifest.json
+
+~/pkn/                    # Scripts and tools
+  ├── scripts/
+  │   └── termux_menu.sh  # Updated menu with cache-busting
+  └── email_osint.py
+
+~/.bashrc                 # Fixed pkn alias
+
+# Everything else from old builds DELETED
+```
+
+**PC** (`/home/gh0st/pkn/`):
+- Full production build untouched
+- CLAUDE.md updated with all session notes
+- All changes pushed to GitHub branch `claude/add-android-app-branch-RKG9I`
