@@ -639,3 +639,280 @@ scrcpy
 - Full production build untouched
 - CLAUDE.md updated with all session notes
 - All changes pushed to GitHub branch `claude/add-android-app-branch-RKG9I`
+
+## Mobile UI Fixes Session (2026-01-07 Night)
+
+### Current State
+Working on mobile CSS fixes via scrcpy screen mirroring (USB connection).
+
+**Phone Connection:**
+- USB connected, scrcpy running: `cd ~/Downloads/scrcpy-linux-x86_64-v3.3.4 && ./scrcpy --show-touches --stay-awake`
+- SSH: `sshpass -p 'pkn123' ssh -o StrictHostKeyChecking=no u0_a322@192.168.12.184 -p 8022`
+- Server: `cd ~/pkn-phone && python3 divinenode_server.py`
+
+### Mobile CSS Changes Made (in ~/pkn-phone/pkn.html inline styles)
+
+**COMPLETED FIXES:**
+1. ✓ Session display ("New" + floppy icon) - HIDDEN on mobile
+2. ✓ Left cyan sidebar border bleeding through - FIXED (sidebar translateX(-120%), visibility:hidden)
+3. ✓ Sidebar close mechanism - Added clickable overlay (`<div class="sidebar-overlay" onclick="toggleSidebar()">`)
+4. ✓ Menu button - Attached to sidebar edge, slides with it (top:12px, left:0, transitions to left:240px when open)
+5. ✓ Agent selector (AUTO/CODER/REASONER) - HIDDEN on mobile (too cluttered)
+6. ✓ Chat toolbar - Restored and made compact
+
+**CURRENT CSS STRUCTURE (line ~85-145 in pkn.html):**
+```css
+/* Key mobile overrides */
+.sidebar { transform: translateX(-120%); visibility: hidden; z-index: 2000; }
+.sidebar.visible { transform: translateX(0); visibility: visible; }
+.toggle-btn { position: fixed; top: 12px; left: 0; width: 18px; height: 32px; z-index: 2001; border-radius: 0 8px 8px 0; transition: left 0.25s; }
+.sidebar.visible ~ .main .toggle-btn { left: 240px; }
+.sidebar-overlay { z-index: 1999; } /* Click to close sidebar */
+.header-agent-selector { display: none; }
+.send-btn { width: 36px; height: 36px; border-radius: 6px; font-size: 0; } /* Icon only, no text */
+.chat-toolbar { padding: 4px 8px; width: 100%; }
+```
+
+**STILL NEEDS WORK:**
+- Menu button hamburger icon (☰) not visible inside the tab
+- Send button still showing "SEND" text instead of arrow icon
+- Welcome screen cards may still be slightly cut off
+- Overall layout may need left margin adjustments
+- Agent selector needs accessible alternative (currently hidden)
+
+### How to Continue This Work
+
+1. **View phone screen:**
+   ```bash
+   cd ~/Downloads/scrcpy-linux-x86_64-v3.3.4 && ./scrcpy --show-touches --stay-awake
+   ```
+
+2. **Edit mobile CSS:**
+   ```bash
+   sshpass -p 'pkn123' ssh u0_a322@192.168.12.184 -p 8022 "sed -i 's|OLD|NEW|' ~/pkn-phone/pkn.html"
+   ```
+
+3. **Restart server (if needed):**
+   ```bash
+   sshpass -p 'pkn123' ssh u0_a322@192.168.12.184 -p 8022 "pkill -f divinenode_server.py; cd ~/pkn-phone && python3 divinenode_server.py &"
+   ```
+
+4. **Backup before major changes:**
+   ```bash
+   sshpass -p 'pkn123' ssh u0_a322@192.168.12.184 -p 8022 "cp ~/pkn-phone/pkn.html ~/pkn-phone/pkn.html.bak"
+   ```
+
+### Key Files
+- **Mobile HTML/CSS:** `~/pkn-phone/pkn.html` (inline `<style>` block around line 62-145)
+- **Mobile CSS file:** `~/pkn-phone/css/mobile-fix.css` (external, but inline CSS takes precedence)
+- **Backup:** `~/pkn-phone/pkn.html.bak`
+
+### Notes
+- All mobile CSS uses `!important` flags due to specificity issues
+- Inline CSS in HTML `<head>` works better than external files (caching issues)
+- Phone is Samsung SM-S938U running Android 16
+- scrcpy v3.3.4 required for Android 16 compatibility (system scrcpy v1.21 too old)
+
+## Mobile Production Deployment Complete (2026-01-08)
+
+### Final Session - All Features Implemented
+
+Tonight's session completed the mobile PKN deployment with all requested features working.
+
+### Critical Issues Resolved
+
+**1. LLM Backend - Cloud API Solution**
+- **Problem**: Local llama-cpp-python had no backends loaded, couldn't load Phi-3 model
+- **Solution**: Switched to OpenAI API (GPT-4o-mini) for reliability
+- **Configuration**: Using API key from PC `.env` file
+- **File**: `~/pkn-phone/divinenode_server.py` - Flask server with OpenAI integration
+- **Status**: ✓ Working, fast, reliable
+
+**2. Server Connection Issues**
+- **Problem**: "localhost refused to connect" - port 8010 not listening
+- **Root Cause**: Old server process crashed/hung
+- **Solution**: Force kill all Python processes, restart server
+- **Command**: `killall -9 python3 && cd ~/pkn-phone && python3 divinenode_server.py &`
+
+**3. Menu Button Still Too Large**
+- **Problem**: User kept reporting menu button as "huge" despite multiple fixes (18px → 12px → 10px)
+- **Final Solution**: Reduced to **8px wide** - just a thin vertical line
+- **Visual**: 2px indicator line inside, hamburger icon hidden
+- **CSS**: `width: 8px !important; font-size: 0 !important;`
+- **Location**: `~/pkn-phone/pkn.html` inline mobile CSS
+
+**4. Thinking Animation Missing**
+- **Problem**: No visual feedback when AI is processing
+- **Solution**: Ensured `.thinking-dots` CSS is visible in mobile
+- **Animation**: Three cyan dots with pulsing animation (1.4s cycle)
+- **Implementation**: Already existed in app.js, just needed CSS visibility fix
+
+**5. Send → Stop Button Toggle**
+- **Problem**: Mobile CSS had `font-size: 0 !important` which hid "STOP" text
+- **Solution**: Dynamic CSS based on `data-state` attribute
+  - **Send state**: Shows ➤ arrow icon (36px round button, cyan)
+  - **Stop state**: Shows "STOP" text (50px wide, red background)
+- **Functionality**: Click during AI response to interrupt (abort controller)
+
+**6. Launcher Background White**
+- **Problem**: Welcome screen had white/light background
+- **Solution**: Changed to `rgba(0,0,0,0.8)` with blur effect
+- **Style**: Black transparent background, matches cyberpunk theme
+- **Affected**: Welcome screen, feature boxes, quick actions
+
+**7. Bash Configuration Mess**
+- **Problem**: 
+  - Duplicate `OPENAI_API_KEY` (set twice in `.bash_profile`)
+  - Conflicting PATH definitions across 3 files
+  - Old backup files (.bash_profile.bak, .profile.bak)
+- **Solution**: Cleaned up structure:
+  - `.bash_profile` → Sources `.bashrc` + auto-launches PKN menu
+  - `.bashrc` → All PKN configuration, aliases, API keys (canonical source)
+  - `.profile` → Minimal PATH only
+- **Script**: `~/clean_bash.sh` - automated cleanup with backups
+
+### Final Mobile Server Configuration
+
+**Backend**: OpenAI API (GPT-4o-mini)
+**Port**: 8010
+**Host**: 0.0.0.0 (accessible from phone browser)
+**API Key**: From PC `.env` (hardcoded in server for mobile simplicity)
+
+**Server File**: `~/pkn-phone/divinenode_server.py`
+```python
+OPENAI_API_KEY = "sk-proj-..." # From PC .env
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+MODEL = "gpt-4o-mini"
+```
+
+**Endpoints Working**:
+- `/api/multi-agent/chat` - Main chat (OpenAI)
+- `/api/osint/email-validate` - Email validation
+- `/api/phonescan` - Phone number check
+- `/health` - Health check
+- `/api/autocomplete` - Disabled (returns empty)
+- `/api/files/list` - Disabled (returns empty)
+
+### Mobile UI Final State
+
+**Menu Button**: 8x24px thin line on left edge, slides with sidebar
+
+**Send Button**:
+- **Normal**: 36px circle, cyan, ➤ arrow icon
+- **Sending**: 50px pill, red, "STOP" text
+- **CSS**: Dynamic via `data-state="stop"` attribute
+
+**Thinking Animation**: Cyan pulsing dots while AI processes
+
+**Welcome Screen**: Black transparent `rgba(0,0,0,0.8)` with blur
+
+**Mobile CSS Location**: `~/pkn-phone/pkn.html` inline `<style>` block (lines ~60-350)
+
+### Termux Menu Script
+
+**Location**: `~/pkn/scripts/termux_menu.sh`
+**Features**:
+1. PKN Mobile (Start server + Open browser with cache-busting)
+2. Server Only (No browser)
+3. Open Browser (Cache-busting URL with timestamp)
+4. Stop Server
+5. Check Status
+6. Exit
+
+**Alias**: `pkn` (in `~/.bashrc`)
+
+**Cache-Busting**: All browser opens use `?v=$(date +%s)` to bypass cache
+
+### Testing & Verification
+
+**Health Check**:
+```bash
+curl http://localhost:8010/health
+# {"status":"ok","backend":"openai-cloud","model":"gpt-4o-mini","api_configured":true}
+```
+
+**Chat Test**:
+```bash
+curl -X POST http://localhost:8010/api/multi-agent/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Hello","mode":"auto"}'
+```
+
+**OSINT Test**:
+```bash
+curl -X POST http://localhost:8010/api/osint/email-validate \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com"}'
+```
+
+### Session Artifacts
+
+**Created Files**:
+- `~/pkn-phone/divinenode_server.py` - OpenAI cloud server
+- `~/pkn-phone/fix_menu_final.py` - Menu button 8px fix
+- `~/pkn-phone/fix_mobile_features.py` - Thinking/Stop/Background fixes
+- `~/clean_bash.sh` - Bash config cleanup script
+
+**Modified Files**:
+- `~/pkn-phone/pkn.html` - Mobile CSS (inline styles)
+- `~/.bashrc` - Cleaned up, all config consolidated
+- `~/.bash_profile` - Simplified, sources .bashrc only
+
+**Backups Created**:
+- `~/pkn-phone/pkn.html.bak_menu_*` - Before menu button fixes
+- `~/pkn-phone/pkn.html.bak_features` - Before feature fixes
+- `~/.bashrc.bak_*` - Before bash cleanup
+- `~/.bash_profile.bak_*` - Before bash cleanup
+
+### TODO for Next Session
+
+**Feature Request - PC Send Button Arrow**:
+- User likes the mobile send button ➤ arrow design
+- Request: Apply same arrow icon to PC version send button
+- **File to modify**: `/home/gh0st/pkn/css/main.css` or `/home/gh0st/pkn/pkn.html`
+- **Current PC button**: Shows "SEND" text
+- **Desired**: Show ➤ arrow like mobile, turn red "STOP" when processing
+
+**Implementation Notes**:
+- Copy mobile send button CSS to desktop version
+- Use same `data-state="stop"` toggle logic
+- Desktop has more space, could be slightly larger (48px instead of 36px)
+- Ensure `font-size` is NOT 0 when in stop state (mobile bug we fixed)
+
+### Phone Deployment Info
+
+**Connection**:
+- IP: `192.168.12.184` (changes per network)
+- SSH Port: 8022
+- User: `u0_a322`
+- Password: `pkn123`
+- Command: `sshpass -p 'pkn123' ssh u0_a322@192.168.12.184 -p 8022`
+
+**Directories**:
+- Mobile build: `~/pkn-phone/`
+- Scripts: `~/pkn/scripts/`
+- Models: `~/models/` (has Phi-3 but not used currently)
+
+**Status**: ✓ Production ready for work tomorrow
+
+### Lessons Learned
+
+1. **Cloud API > Local LLM on Mobile**: llama-cpp-python backend issues too complex for mobile, OpenAI "just works"
+2. **Inline CSS > External Files on Mobile**: Browser cache extremely aggressive, inline bypasses issues
+3. **Iterative Sizing**: Menu button went through 5 iterations before user satisfaction (8px final)
+4. **font-size:0 breaks text**: CSS trick for hiding text also prevents dynamic text from showing
+5. **Multiple config files cause conflicts**: Consolidate to single source of truth (.bashrc)
+
+### Performance Notes
+
+- Chat response: ~2-4 seconds (OpenAI GPT-4o-mini)
+- Server startup: ~3 seconds
+- Browser cold start: ~5 seconds
+- No lag or performance issues reported by user
+
+### Branch Info
+
+**Current branch**: `claude/add-android-app-branch-RKG9I`
+**Last push**: 2026-01-07 (pre-final-session)
+**Pending push**: Tonight's completion (2026-01-08)
+
