@@ -975,3 +975,194 @@ This forced ALL panels to be hidden with `!important`, preventing JavaScript fro
 - Panels: `max-width: calc(100vw - 40px); max-height: calc(100vh - 40px);`
 - Modal overlays: `background: rgba(0,0,0,0.85); z-index: 9999;`
 
+
+## Final Mobile Integration Session (2026-01-09)
+
+### Session Summary
+
+**Goal**: Integrate tracking pixels into OSINT Tools and fix remaining UI issues on mobile PWA.
+
+**Key Accomplishments**:
+1. ✓ Tracking Pixels integrated into OSINT Tools panel
+2. ✓ Paperclip icon moved to right side of input
+3. ✓ Enhanced phonescan with better validation
+4. ✓ Settings X button made larger and more visible
+5. ✓ All backend APIs verified working
+
+### Tracking Pixels Integration
+
+**Problem**: Tracking Pixels was a separate menu item, user wanted it inside OSINT Tools with other tools.
+
+**Solution**: Added Tracking Pixels as a button category inside the OSINT Tools modal panel.
+
+**Implementation**:
+- Modified `~/pkn-phone/js/osint_ui.js`
+- Added new category "🔍 Tracking & Privacy" with Tracking Pixels button
+- Button appears at bottom of OSINT panel alongside:
+  - Domain Intelligence (WHOIS, DNS, etc.)
+  - IP & Network
+  - Email & Username
+  - Web Intelligence
+  - Phone
+  - **Tracking & Privacy** (NEW)
+
+**How it works**:
+1. Click "🔍 OSINT Tools" in sidebar
+2. OSINT panel opens showing all tool categories
+3. Click "Tracking Pixels" button at bottom
+4. Opens full tracking panel with 4 tabs (Detector, Generator, Blocker, Manager)
+
+### Paperclip Icon Fix
+
+**Problem**: Paperclip icon had large gap from left edge of input area.
+
+**Solution**: Positioned paperclip absolutely on the right side.
+
+**CSS Changes** (in `~/pkn-phone/pkn.html`):
+```css
+.input-wrapper { position: relative !important; }
+.paperclip-btn { 
+    position: absolute !important; 
+    right: 8px !important; 
+    top: 50% !important; 
+    transform: translateY(-50%) !important; 
+    width: 32px !important; 
+    height: 32px !important; 
+}
+#messageInput { padding-right: 48px !important; }
+```
+
+### Phone Scan Enhancement
+
+**Problem**: Phonescan API only did basic length check.
+
+**Solution**: Enhanced with proper parsing and formatting.
+
+**New Features**:
+- Cleans number (digits only)
+- Detects country (US/CA vs International)
+- Formats output: `+1 (555) 867-5309`
+- Extracts area code
+- Returns cleaned and formatted versions
+
+**Example Response**:
+```json
+{
+  "area_code": "555",
+  "cleaned": "15558675309",
+  "country": "US/CA",
+  "formatted": "+1 (555) 867-5309",
+  "length": 11,
+  "message": "Phone number analyzed",
+  "number": "+1-555-867-5309",
+  "valid": true
+}
+```
+
+### Settings Panel X Button
+
+**Problem**: X close button not visible on settings panel (cut off by screen edge).
+
+**Multiple Attempts**:
+1. Reduced panel height: 80vh → 70vh → 50vh
+2. Added top margin: 60px
+3. Made button larger and more visible
+
+**Final Solution** (in `~/pkn-phone/pkn.html` mobile CSS):
+```css
+.settings-close-x { 
+    display: block !important; 
+    width: 44px !important; 
+    height: 44px !important; 
+    font-size: 32px !important; 
+    background: rgba(0,255,255,0.3) !important; 
+    border: 2px solid var(--theme-primary) !important; 
+    border-radius: 50% !important; 
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    z-index: 9999 !important;
+}
+```
+
+**Result**: Large cyan circular button at top-right of panel.
+
+### Backend APIs Verified
+
+**Tested and Working**:
+- ✓ Email validation: `/api/osint/email-validate`
+- ✓ Phone scan (enhanced): `/api/phonescan`
+- ✓ Tracking detection: `/api/tracking/detect`
+- ✓ Tracking generation: `/api/tracking/generate`
+- ✓ Tracking list: `/api/tracking/list`
+- ✓ Tracking sanitize: `/api/tracking/sanitize`
+- ✓ Health check: `/health`
+
+**Tracking Pixel Database**: 7 test pixels stored and tracked.
+
+### Files Modified
+
+**Phone** (`~/pkn-phone/`):
+- `js/osint_ui.js` - Added Tracking Pixels category to OSINT panel
+- `pkn.html` - Paperclip positioning, X button styling, settings panel height
+- `divinenode_server.py` - Enhanced phonescan endpoint
+
+**Scripts Created**:
+- `fix_paperclip_position.py` - Move paperclip to right
+- `add_tracking_to_osint_panel.py` - Integrate tracking into OSINT
+- `enhance_phonescan.py` - Better phone validation
+- `fix_settings_smaller.py` - Reduce panel height
+- `fix_settings_top_padding.py` - Add top margin
+- `make_x_button_visible.py` - Large cyan X button
+
+### Issues Encountered
+
+**Tracking Pixels Integration**: 
+- Initial attempts added submenu in sidebar (not what user wanted)
+- User wanted button inside OSINT panel modal, not sidebar submenu
+- Fixed by adding to `osint_ui.js` panel HTML instead of sidebar
+
+**Settings X Button**:
+- Multiple iterations to make visible
+- Panel was too tall (extended beyond screen)
+- Final solution: 50vh height + large visible button
+
+**Bash Heredoc Syntax**:
+- SSH heredoc with complex Python strings caused syntax errors
+- Solution: Use Write tool to create files locally, then SCP to phone
+
+### Current State (2026-01-09 End of Session)
+
+**Phone Server**:
+- Running: `~/pkn-phone/divinenode_server.py`
+- Port: 8010
+- Backend: OpenAI API (GPT-4o-mini)
+- Status: ✓ All APIs functional
+
+**PWA Features**:
+- ✓ Transparent sword icon
+- ✓ Named "Divine Node"
+- ✓ Menu button (8px thin line)
+- ✓ Tracking Pixels in OSINT Tools
+- ✓ Enhanced phonescan
+- ✓ Paperclip on right
+- ✓ Large visible X buttons (44px, cyan background)
+
+**Known Issues**:
+- Settings X button visibility still reported by user after final fix (needs follow-up)
+
+### Lessons Learned (This Session)
+
+1. **User Intent Clarification**: Always confirm if user wants sidebar submenu vs panel button - very different implementations
+2. **Iterative UI Fixes**: Sometimes need multiple approaches (height, margin, size, background) to make elements visible
+3. **Mobile CSS Specificity**: Need `!important` flags and high z-index to override conflicting styles
+4. **SSH Heredoc Limitations**: Complex Python scripts better created locally then copied to remote
+5. **Test After Each Change**: Verify each fix before moving to next issue
+
+### Next Session TODO
+
+1. **Verify Settings X Button**: User still reported not seeing it - may need different approach
+2. **Test All Tracking Features**: Detector, Generator, Blocker, Manager tabs in browser
+3. **Swipe Gestures** (optional): User originally requested swipe-to-open sidebar (attempted but broke OSINT, reverted)
+4. **Documentation**: User wants tracking pixel usage documented in UI
+
