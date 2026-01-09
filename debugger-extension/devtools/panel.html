@@ -3,8 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debugger App - Visual UI Inspector</title>
-    <link rel="stylesheet" href="css/debugger.css">
+    <title>Divine Debugger</title>
+    <link rel="stylesheet" href="../css/debugger.css">
+    <style>
+        /* Extension-specific overrides */
+        .preview-container {
+            display: none; /* Hide iframe preview in extension */
+        }
+        .panel-center {
+            display: none; /* Hide center panel - we inspect the actual page */
+        }
+        .panel-left, .panel-right {
+            width: 50% !important; /* Make side panels wider */
+        }
+    </style>
 </head>
 <body>
     <!-- Main Container -->
@@ -13,12 +25,12 @@
         <!-- Top Toolbar -->
         <div class="toolbar">
             <div class="toolbar-left">
-                <h1 class="app-title">🐞 Debugger App</h1>
-                <span class="version">v1.0</span>
+                <h1 class="app-title">🐞 Divine Debugger</h1>
+                <span class="version">v1.0 - Chrome Extension</span>
             </div>
             <div class="toolbar-right">
-                <button id="togglePanels" class="btn-icon" title="Toggle All Panels">
-                    <span>⚙️</span>
+                <button id="refreshElements" class="btn-icon" title="Refresh Element List">
+                    🔄
                 </button>
                 <button id="resetAll" class="btn-danger" title="Reset All Changes">
                     Reset
@@ -26,7 +38,7 @@
             </div>
         </div>
 
-        <!-- Main Layout: 3 columns -->
+        <!-- Main Layout: 2 columns (no center preview) -->
         <div class="main-layout">
 
             <!-- Left Panel: Element Selector & Inspector -->
@@ -44,7 +56,7 @@
                             <option value="">Select element...</option>
                         </select>
                         <button id="pickElement" class="btn-secondary">
-                            👆 Pick Element (Click Mode)
+                            👆 Inspect Element
                         </button>
                     </div>
 
@@ -64,20 +76,6 @@
                         <button id="highlightElement" class="btn-action">Highlight</button>
                     </div>
 
-                </div>
-            </div>
-
-            <!-- Center Panel: Live Preview -->
-            <div class="panel panel-center">
-                <div class="panel-header">
-                    <h2>👁️ Live Preview</h2>
-                    <button class="panel-toggle" data-panel="center">−</button>
-                </div>
-                <div class="panel-content">
-                    <div id="previewFrame" class="preview-container">
-                        <!-- Target application will be loaded here or inspected in-place -->
-                        <iframe id="targetFrame" src="examples/demo.html" title="Target Application"></iframe>
-                    </div>
                 </div>
             </div>
 
@@ -195,11 +193,10 @@
 
         </div>
 
-        <!-- Bottom Panel: Tabs (Console, Files, State) -->
+        <!-- Bottom Panel: Tabs (Console, State) -->
         <div class="bottom-panel">
             <div class="tabs">
                 <button class="tab active" data-tab="console">🖥️ Console</button>
-                <button class="tab" data-tab="files">📁 Files</button>
                 <button class="tab" data-tab="state">🧪 State</button>
             </div>
 
@@ -220,16 +217,6 @@
                     <div id="consoleOutput" class="console-output"></div>
                 </div>
 
-                <!-- Files Tab -->
-                <div id="filesTab" class="tab-panel">
-                    <div class="file-controls">
-                        <input type="file" id="fileUpload" multiple style="display:none;">
-                        <button id="uploadBtn" class="btn-primary">📤 Upload Files</button>
-                        <button id="refreshFiles" class="btn-sm">Refresh</button>
-                    </div>
-                    <div id="filesList" class="files-list"></div>
-                </div>
-
                 <!-- State Tab -->
                 <div id="stateTab" class="tab-panel">
                     <div class="state-controls">
@@ -244,11 +231,7 @@
 
     </div>
 
-    <!-- Scripts -->
-    <script src="js/gui-editor.js" type="module"></script>
-    <script src="js/file-manager.js" type="module"></script>
-    <script src="js/console.js" type="module"></script>
-    <script src="js/state.js" type="module"></script>
-    <script src="js/main.js" type="module"></script>
+    <!-- Extension-specific Scripts -->
+    <script src="panel.js" type="module"></script>
 </body>
 </html>

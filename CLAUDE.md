@@ -916,3 +916,62 @@ curl -X POST http://localhost:8010/api/osint/email-validate \
 **Last push**: 2026-01-07 (pre-final-session)
 **Pending push**: Tonight's completion (2026-01-08)
 
+
+### Additional Fixes - Memory & Modals (2026-01-08 Late)
+
+**Memory System Added**:
+
+Mobile server now has full memory persistence matching desktop version:
+
+1. **Session Memory**: `~/pkn-phone/memory/current_session.json`
+   - Current conversation history
+   - Last 30 messages kept
+   - Persists across app restarts
+
+2. **Global Memory**: `~/.pkn_mobile_memory.json`
+   - Long-term facts about user
+   - User preferences
+   - Important information
+   - Never deleted
+
+3. **Project Memory**: `~/pkn-phone/project_memory.json`
+   - Project-specific notes
+   - PKN Mobile context
+   - Never deleted
+
+Memory API endpoints:
+- `GET /api/memory/status` - View all memory stats
+- `POST /api/memory/add-fact` - Add long-term fact
+- `POST /api/memory/clear-session` - Start new conversation
+
+**Modal/Panel Fixes**:
+
+**Problem**: Settings, Files Explorer, AI Models panels couldn't open on mobile. Close buttons were invisible/too small.
+
+**Root Cause**: Mobile CSS line 326 had:
+```css
+#filesPanel, #agentSwitcherPanel, #aiModelsModal, #codeEditorModal, .modal-overlay:not(.visible), .settings-overlay.hidden { display: none !important; visibility: hidden !important; }
+```
+
+This forced ALL panels to be hidden with `!important`, preventing JavaScript from showing them.
+
+**Solution**:
+1. Removed force-hidden CSS for panel IDs
+2. Added proper `.visible` class logic for show/hide
+3. Made close buttons 36x36px (was too small to tap)
+4. Changed close button style: cyan background, black X
+5. Made panels full-width and scrollable for mobile
+
+**Fixed Panels**:
+- ✅ Settings panel
+- ✅ Files explorer (#filesPanel)
+- ✅ AI Models panel (#aiModelsModal)
+- ✅ Project modal
+- ✅ Image generator modal
+- ✅ Code editor overlay
+
+**CSS Changes** (in `~/pkn-phone/pkn.html` inline mobile styles):
+- Close buttons: `width: 36px; height: 36px; background: var(--theme-primary); font-size: 24px;`
+- Panels: `max-width: calc(100vw - 40px); max-height: calc(100vh - 40px);`
+- Modal overlays: `background: rgba(0,0,0,0.85); z-index: 9999;`
+
